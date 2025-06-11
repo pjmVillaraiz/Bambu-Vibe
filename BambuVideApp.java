@@ -1,453 +1,516 @@
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
+import javax.swing.border.*;
+import javax.swing.event.*;
+import javax.swing.table.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.Vector;
-import java.util.regex.PatternSyntaxException;
+import java.awt.event.*;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.util.regex.Pattern;
 
 public class BambuVideApp extends JFrame {
-
+    private DefaultTableModel tableModel;
+    private JTable inventoryTable;
     private JTextField itemNameField;
     private JTextField itemQuantityField;
     private JTextField itemPriceField;
-    private DefaultTableModel tableModel;
-    private JTable inventoryTable;
-    private JLabel totalQuantityLabel;
-
     private JTextField searchField;
+    private JLabel totalQuantityLabel;
     private TableRowSorter<DefaultTableModel> sorter;
 
+    private final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    private static final Color PRIMARY_COLOR = new Color(210, 180, 140);
+    private static final Color SECONDARY_COLOR = new Color(245, 245, 220);
+    private static final Color BUTTON_COLOR = new Color(195, 176, 145);
+    private static final Color BORDER_COLOR = new Color(188, 158, 130);
+    private static final Color TEXT_COLOR = new Color(101, 67, 33);
+    private static final Font MAIN_FONT = new Font("Segoe UI", Font.PLAIN, 12);
+    private static final Font HEADER_FONT = new Font("Segoe UI", Font.BOLD, 14);
+
     public BambuVideApp() {
-        setTitle("Bambu Vide - Inventory Management");
-        setSize(1000, 700);
+        setTitle("Bambu Vide Inventory Management");
+        setSize(700, 650);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        JPanel mainPanel = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Image bambooBackground = new ImageIcon("resources/bamboo_texture.jpg").getImage();
-                g.drawImage(bambooBackground, 0, 0, getWidth(), getHeight(), this);
-            }
-        };
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        initializeTable();
 
-        JPanel topPanel = new JPanel(new BorderLayout(10, 10));
-        topPanel.setBackground(new Color(139, 69, 19));
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBackground(SECONDARY_COLOR);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        JPanel inputPanel = new JPanel(new GridBagLayout());
-        inputPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(34, 139, 34), 2),
-                "Add/Update Item", 0, 0, new Font("Serif", Font.BOLD, 16), new Color(34, 139, 34)));
-        inputPanel.setBackground(new Color(222, 184, 135));
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(SECONDARY_COLOR);
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        contentPanel.add(createInputPanel());
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        contentPanel.add(createSearchPanel());
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        contentPanel.add(createTablePanel());
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        contentPanel.add(createTotalPanel());
 
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        inputPanel.add(new JLabel("Item Name:"), gbc);
-        gbc.gridx = 1;
-        itemNameField = new JTextField(20);
-        inputPanel.add(itemNameField, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        inputPanel.add(new JLabel("Quantity:"), gbc);
-        gbc.gridx = 1;
-        itemQuantityField = new JTextField(20);
-        inputPanel.add(itemQuantityField, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        inputPanel.add(new JLabel("Price (₱):"), gbc);
-        gbc.gridx = 1;
-        itemPriceField = new JTextField(20);
-        inputPanel.add(itemPriceField, gbc);
-
-        JPanel crudButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
-        crudButtonPanel.setBackground(new Color(222, 184, 135));
-        JButton addButton = new JButton("Add Item");
-        JButton updateButton = new JButton("Update Item");
-        JButton clearButton = new JButton("Clear Fields");
-
-        addButton.setIcon(new ImageIcon("resources/bamboo_button.png"));
-        updateButton.setIcon(new ImageIcon("resources/bamboo_button.png"));
-        clearButton.setIcon(new ImageIcon("resources/bamboo_button.png"));
-
-        addButton.setHorizontalTextPosition(SwingConstants.CENTER);
-        addButton.setVerticalTextPosition(SwingConstants.CENTER);
-        updateButton.setHorizontalTextPosition(SwingConstants.CENTER);
-        updateButton.setVerticalTextPosition(SwingConstants.CENTER);
-        clearButton.setHorizontalTextPosition(SwingConstants.CENTER);
-        clearButton.setVerticalTextPosition(SwingConstants.CENTER);
-
-        crudButtonPanel.add(addButton);
-        crudButtonPanel.add(updateButton);
-        crudButtonPanel.add(clearButton);
-
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.gridwidth = 2;
-        inputPanel.add(crudButtonPanel, gbc);
-
-        topPanel.add(inputPanel, BorderLayout.CENTER);
-
-        JPanel searchPanel = new JPanel(new GridBagLayout());
-        searchPanel
-                .setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(34, 139, 34), 2),
-                        "Search Inventory", 0, 0, new Font("Serif", Font.BOLD, 16), new Color(34, 139, 34)));
-        searchPanel.setBackground(new Color(222, 184, 135));
-        GridBagConstraints searchGbc = new GridBagConstraints();
-        searchGbc.insets = new Insets(5, 5, 5, 5);
-        searchGbc.fill = GridBagConstraints.HORIZONTAL;
-
-        searchGbc.gridx = 0;
-        searchGbc.gridy = 0;
-        searchPanel.add(new JLabel("Search Item Name:"), searchGbc);
-        searchGbc.gridx = 1;
-        searchField = new JTextField(15);
-        searchPanel.add(searchField, searchGbc);
-
-        searchGbc.gridx = 0;
-        searchGbc.gridy = 1;
-        searchGbc.gridwidth = 2;
-        JButton searchButton = new JButton("Search");
-        searchPanel.add(searchButton, searchGbc);
-
-        searchGbc.gridx = 0;
-        searchGbc.gridy = 2;
-        JButton clearSearchButton = new JButton("Clear Search");
-        searchPanel.add(clearSearchButton, searchGbc);
-
-        topPanel.add(searchPanel, BorderLayout.EAST);
-
-        mainPanel.add(topPanel, BorderLayout.NORTH);
-
-        String[] columnNames = { "Item Name", "Quantity", "Price (₱)" };
-        tableModel = new DefaultTableModel(columnNames, 0);
-        inventoryTable = new JTable(tableModel);
-        sorter = new TableRowSorter<>(tableModel);
-        inventoryTable.setRowSorter(sorter);
-        JScrollPane scrollPane = new JScrollPane(inventoryTable);
-
+        JScrollPane scrollPane = new JScrollPane(contentPanel);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        JPanel bottomPanel = new JPanel(new BorderLayout(10, 0));
-        bottomPanel.setBackground(new Color(139, 69, 19));
-
-        JPanel actionButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        actionButtonPanel.setBackground(new Color(222, 184, 135));
-        JButton deleteButton = new JButton("Delete Selected Item");
-        JButton increaseQuantityButton = new JButton("Increase Quantity (+1)");
-        JButton decreaseQuantityButton = new JButton("Decrease Quantity (-1)");
-        JButton generateReportButton = new JButton("Inventory Report");
-
-        actionButtonPanel.add(deleteButton);
-        actionButtonPanel.add(increaseQuantityButton);
-        actionButtonPanel.add(decreaseQuantityButton);
-        actionButtonPanel.add(generateReportButton);
-        bottomPanel.add(actionButtonPanel, BorderLayout.WEST);
-
-        JPanel totalQuantityPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        totalQuantityPanel.setBackground(new Color(222, 184, 135));
-        totalQuantityLabel = new JLabel("Total Items Quantity: 0");
-        totalQuantityLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        totalQuantityPanel.add(totalQuantityLabel);
-        bottomPanel.add(totalQuantityPanel, BorderLayout.EAST);
-
-        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
-
         add(mainPanel);
-
+        setupTableSelectionListener();
+        setupSearch();
         updateTotalQuantity();
     }
 
-    private void addItem() {
-        String name = itemNameField.getText().trim();
-        String quantityStr = itemQuantityField.getText().trim();
-        String priceStr = itemPriceField.getText().trim();
-
-        if (name.isEmpty() || quantityStr.isEmpty() || priceStr.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please fill in all fields.", "Input Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        try {
-            int quantity = Integer.parseInt(quantityStr);
-            double price = Double.parseDouble(priceStr);
-
-            if (quantity < 0 || price < 0) {
-                JOptionPane.showMessageDialog(this, "Quantity and Price cannot be negative.", "Input Error",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
+    private void initializeTable() {
+        String[] columnNames = {"Item Name", "Quantity", "Price (₱)", "Date Added", "Date Updated"};
+        tableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
             }
 
-            int existingRow = -1;
-            for (int i = 0; i < tableModel.getRowCount(); i++) {
-                if (tableModel.getValueAt(i, 0).toString().equalsIgnoreCase(name)) {
-                    existingRow = i;
-                    break;
+            @Override
+            public Class<?> getColumnClass(int column) {
+                switch (column) {
+                    case 1: return Integer.class;
+                    case 2: return Double.class;
+                    case 3:
+                    case 4: return String.class;
+                    default: return String.class;
                 }
             }
+        };
 
-            if (existingRow != -1) {
-                int option = JOptionPane.showConfirmDialog(this,
-                        "Item '" + name + "' already exists. Do you want to update its quantity and price?",
-                        "Item Exists", JOptionPane.YES_NO_OPTION);
-                if (option == JOptionPane.YES_OPTION) {
-                    tableModel.setValueAt(quantity, existingRow, 1);
-                    tableModel.setValueAt(String.format("%.2f", price), existingRow, 2);
-                    JOptionPane.showMessageDialog(this, "Item updated successfully!", "Success",
-                            JOptionPane.INFORMATION_MESSAGE);
-                }
-            } else {
-                Vector<Object> rowData = new Vector<>();
-                rowData.add(name);
-                rowData.add(quantity);
-                rowData.add(String.format("%.2f", price));
-                tableModel.addRow(rowData);
-                JOptionPane.showMessageDialog(this, "Item added successfully!", "Success",
-                        JOptionPane.INFORMATION_MESSAGE);
-            }
-            clearFields();
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Quantity must be an integer and Price must be a valid number.",
-                    "Input Error", JOptionPane.ERROR_MESSAGE);
-        }
+        inventoryTable = new JTable(tableModel);
+        sorter = new TableRowSorter<>(tableModel);
+        inventoryTable.setRowSorter(sorter);
+
+        inventoryTable.setRowHeight(30);
+        inventoryTable.setFont(MAIN_FONT);
+        inventoryTable.getTableHeader().setFont(HEADER_FONT);
+        inventoryTable.getTableHeader().setForeground(TEXT_COLOR);
+        inventoryTable.getTableHeader().setBackground(BUTTON_COLOR);
+        inventoryTable.setSelectionBackground(PRIMARY_COLOR.darker());
+        inventoryTable.setSelectionForeground(Color.WHITE);
+        inventoryTable.setBackground(SECONDARY_COLOR);
+        inventoryTable.setFillsViewportHeight(true);
+        inventoryTable.setGridColor(BORDER_COLOR.brighter());
+        inventoryTable.setShowGrid(true);
+
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+        inventoryTable.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
+        inventoryTable.getColumnModel().getColumn(2).setCellRenderer(centerRenderer);
+        inventoryTable.getColumnModel().getColumn(3).setCellRenderer(centerRenderer);
+        inventoryTable.getColumnModel().getColumn(4).setCellRenderer(centerRenderer);
     }
 
-    private void updateItem() {
-        int selectedRowView = inventoryTable.getSelectedRow();
-        if (selectedRowView == -1) {
-            JOptionPane.showMessageDialog(this, "Please select an item from the table to update.", "No Selection",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        int selectedModelRow = inventoryTable.convertRowIndexToModel(selectedRowView);
+    private JPanel createInputPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(SECONDARY_COLOR);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
 
-        String name = itemNameField.getText().trim();
-        String quantityStr = itemQuantityField.getText().trim();
-        String priceStr = itemPriceField.getText().trim();
+        itemNameField = createStyledTextField("e.g., Bambu Filaments");
+        itemQuantityField = createStyledTextField("e.g., 50");
+        itemPriceField = createStyledTextField("e.g., 1250.75");
 
-        if (name.isEmpty() || quantityStr.isEmpty() || priceStr.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please fill in all fields for update.", "Input Error",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+        panel.add(createFieldWithLabel("Item Name:", itemNameField));
+        panel.add(Box.createRigidArea(new Dimension(0, 8)));
+        panel.add(createFieldWithLabel("Quantity:", itemQuantityField));
+        panel.add(Box.createRigidArea(new Dimension(0, 8)));
+        panel.add(createFieldWithLabel("Price (₱):", itemPriceField));
+        panel.add(Box.createRigidArea(new Dimension(0, 15)));
+        panel.add(createButtonPanel());
 
+        return panel;
+    }
+
+    private JPanel createSearchPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 0));
+        panel.setBackground(SECONDARY_COLOR);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(8, 8, 8, 8)
+        ));
+
+        searchField = createStyledTextField("Search items...");
+        searchField.setFont(MAIN_FONT.deriveFont(Font.ITALIC));
+        panel.add(searchField, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createTablePanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(SECONDARY_COLOR);
+        panel.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+
+        JScrollPane scrollPane = new JScrollPane(inventoryTable);
+        scrollPane.setPreferredSize(new Dimension(0, 250));
+        scrollPane.getViewport().setBackground(SECONDARY_COLOR);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createTotalPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 0));
+        panel.setBackground(SECONDARY_COLOR);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        ));
+
+        totalQuantityLabel = new JLabel("Total Items: 0");
+        totalQuantityLabel.setFont(HEADER_FONT.deriveFont(Font.BOLD, 16f));
+        totalQuantityLabel.setForeground(TEXT_COLOR);
+        panel.add(totalQuantityLabel, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createButtonPanel() {
+        JPanel buttonPanel = new JPanel(new GridLayout(4, 1, 5, 5));
+        buttonPanel.setOpaque(false);
+
+        JButton addButton = createStyledButton("Add Item");
+        JButton updateButton = createStyledButton("Update Item");
+        JButton clearButton = createStyledButton("Clear Fields");
+        JButton reportButton = createStyledButton("Generate Report");
+
+        addButton.addActionListener(e -> addItem());
+        updateButton.addActionListener(e -> updateItem());
+        clearButton.addActionListener(e -> clearFields());
+        reportButton.addActionListener(e -> generateReport());
+
+        buttonPanel.add(addButton);
+        buttonPanel.add(updateButton);
+        buttonPanel.add(clearButton);
+        buttonPanel.add(reportButton);
+
+        return buttonPanel;
+    }
+
+    private JTextField createStyledTextField(String placeholderText) {
+        JTextField textField = new JTextField(20);
+        textField.setFont(MAIN_FONT);
+        textField.setForeground(TEXT_COLOR);
+        textField.setBackground(Color.WHITE);
+        textField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR.darker(), 1),
+                BorderFactory.createEmptyBorder(5, 8, 5, 8)
+        ));
+        textField.setText(placeholderText);
+        textField.setForeground(Color.GRAY);
+        textField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (textField.getText().equals(placeholderText)) {
+                    textField.setText("");
+                    textField.setForeground(TEXT_COLOR);
+                }
+            }
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (textField.getText().isEmpty()) {
+                    textField.setText(placeholderText);
+                    textField.setForeground(Color.GRAY);
+                }
+            }
+        });
+        return textField;
+    }
+
+    private JButton createStyledButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(HEADER_FONT);
+        button.setBackground(BUTTON_COLOR);
+        button.setForeground(TEXT_COLOR.darker());
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(8, 15, 8, 15)
+        ));
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(BUTTON_COLOR.darker());
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(BUTTON_COLOR);
+            }
+        });
+        return button;
+    }
+
+    private JPanel createFieldWithLabel(String labelText, JTextField textField) {
+        JPanel panel = new JPanel(new BorderLayout(5, 0));
+        panel.setOpaque(false);
+        JLabel label = new JLabel(labelText);
+        label.setFont(MAIN_FONT.deriveFont(Font.BOLD));
+        label.setForeground(TEXT_COLOR);
+        panel.add(label, BorderLayout.WEST);
+        panel.add(textField, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void addItem() {
         try {
-            int quantity = Integer.parseInt(quantityStr);
-            double price = Double.parseDouble(priceStr);
-
-            if (quantity < 0 || price < 0) {
-                JOptionPane.showMessageDialog(this, "Quantity and Price cannot be negative.", "Input Error",
-                        JOptionPane.ERROR_MESSAGE);
+            String itemName = itemNameField.getText().trim();
+            if (itemName.isEmpty() || itemName.equals("e.g., Bambu Filaments")) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid item name.", "Input Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             for (int i = 0; i < tableModel.getRowCount(); i++) {
-                if (i != selectedModelRow && tableModel.getValueAt(i, 0).toString().equalsIgnoreCase(name)) {
-                    JOptionPane.showMessageDialog(this, "An item with this name already exists.", "Duplicate Name",
-                            JOptionPane.ERROR_MESSAGE);
+                if (tableModel.getValueAt(i, 0).toString().equalsIgnoreCase(itemName)) {
+                    JOptionPane.showMessageDialog(this, "An item with this name already exists.", "Duplicate Item", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
             }
 
-            tableModel.setValueAt(name, selectedModelRow, 0);
-            tableModel.setValueAt(quantity, selectedModelRow, 1);
-            tableModel.setValueAt(String.format("%.2f", price), selectedModelRow, 2);
-            JOptionPane.showMessageDialog(this, "Item updated successfully!", "Success",
-                    JOptionPane.INFORMATION_MESSAGE);
-            clearFields();
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Quantity must be an integer and Price must be a valid number.",
-                    "Input Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void deleteItem() {
-        int selectedRowView = inventoryTable.getSelectedRow();
-        if (selectedRowView == -1) {
-            JOptionPane.showMessageDialog(this, "Please select an item from the table to delete.", "No Selection",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        int selectedModelRow = inventoryTable.convertRowIndexToModel(selectedRowView);
-
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Are you sure you want to delete the selected item?",
-                "Confirm Delete", JOptionPane.YES_NO_OPTION);
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            tableModel.removeRow(selectedModelRow);
-            JOptionPane.showMessageDialog(this, "Item deleted successfully!", "Success",
-                    JOptionPane.INFORMATION_MESSAGE);
-            clearFields();
-        }
-    }
-
-    private void changeQuantity(int delta) {
-        int selectedRowView = inventoryTable.getSelectedRow();
-        if (selectedRowView == -1) {
-            JOptionPane.showMessageDialog(this, "Please select an item to change its quantity.", "No Selection",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        int selectedModelRow = inventoryTable.convertRowIndexToModel(selectedRowView);
-
-        try {
-            int currentQuantity = (int) tableModel.getValueAt(selectedModelRow, 1);
-            int newQuantity = currentQuantity + delta;
-
-            if (newQuantity < 0) {
-                JOptionPane.showMessageDialog(this, "Quantity cannot be negative.", "Quantity Error",
-                        JOptionPane.WARNING_MESSAGE);
+            int quantity;
+            try {
+                quantity = Integer.parseInt(itemQuantityField.getText().trim());
+                if (quantity < 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid positive quantity (e.g., 50).", "Input Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            tableModel.setValueAt(newQuantity, selectedModelRow, 1);
-            JOptionPane.showMessageDialog(this, "Quantity updated successfully!", "Success",
-                    JOptionPane.INFORMATION_MESSAGE);
+            double price;
+            try {
+                price = Double.parseDouble(itemPriceField.getText().trim());
+                if (price < 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid positive price (e.g., 1250.75).", "Input Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String currentDateTime = dateFormatter.format(new Date());
+
+            tableModel.addRow(new Object[]{itemName, quantity, price, currentDateTime, currentDateTime});
             clearFields();
-        } catch (ClassCastException ex) {
-            JOptionPane.showMessageDialog(this, "Error reading quantity. It might not be a valid number.", "Data Error",
-                    JOptionPane.ERROR_MESSAGE);
+            updateTotalQuantity();
+            JOptionPane.showMessageDialog(this, "Item added successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "An unexpected error occurred: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
         }
+    }
+
+    private void updateItem() {
+        int selectedRow = inventoryTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Please select an item to update.", "No Selection", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int modelRow = inventoryTable.convertRowIndexToModel(selectedRow);
+
+        try {
+            String oldItemName = tableModel.getValueAt(modelRow, 0).toString();
+            String newItemName = itemNameField.getText().trim();
+
+            if (newItemName.isEmpty() || newItemName.equals("e.g., Bambu Filaments")) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid item name.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                if (i != modelRow && tableModel.getValueAt(i, 0).toString().equalsIgnoreCase(newItemName)) {
+                    JOptionPane.showMessageDialog(this, "An item with this name already exists.", "Duplicate Item", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+
+            int newQuantity;
+            try {
+                newQuantity = Integer.parseInt(itemQuantityField.getText().trim());
+                if (newQuantity < 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid positive quantity (e.g., 50).", "Input Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            double newPrice;
+            try {
+                newPrice = Double.parseDouble(itemPriceField.getText().trim());
+                if (newPrice < 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid positive price (e.g., 1250.75).", "Input Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String currentDateTime = dateFormatter.format(new Date());
+
+            tableModel.setValueAt(newItemName, modelRow, 0);
+            tableModel.setValueAt(newQuantity, modelRow, 1);
+            tableModel.setValueAt(newPrice, modelRow, 2);
+            tableModel.setValueAt(currentDateTime, modelRow, 4);
+
+            clearFields();
+            updateTotalQuantity();
+            JOptionPane.showMessageDialog(this, "Item updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "An unexpected error occurred during update: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+
+    private void clearFields() {
+        itemNameField.setText("e.g., Bambu Filaments");
+        itemNameField.setForeground(Color.GRAY);
+        itemQuantityField.setText("e.g., 50");
+        itemQuantityField.setForeground(Color.GRAY);
+        itemPriceField.setText("e.g., 1250.75");
+        itemPriceField.setForeground(Color.GRAY);
+        inventoryTable.clearSelection();
     }
 
     private void updateTotalQuantity() {
         int total = 0;
         for (int i = 0; i < tableModel.getRowCount(); i++) {
-            try {
-                total += (int) tableModel.getValueAt(i, 1);
-            } catch (ClassCastException e) {
-                System.err.println("Error: Quantity at row " + i + " is not an integer. " + e.getMessage());
-            }
+            total += (Integer) tableModel.getValueAt(i, 1);
         }
-        totalQuantityLabel.setText("Total Items Quantity: " + total);
+        totalQuantityLabel.setText("Total Items: " + total);
     }
 
-    private void filterTable() {
-        String searchText = searchField.getText().trim();
-        if (searchText.isEmpty()) {
-            sorter.setRowFilter(null);
-        } else {
-            try {
-                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + searchText, 0));
-            } catch (PatternSyntaxException e) {
-                JOptionPane.showMessageDialog(this, "Invalid search pattern: " + e.getMessage(), "Search Error",
-                        JOptionPane.ERROR_MESSAGE);
-                sorter.setRowFilter(null);
-            }
-        }
-        clearFields();
-    }
+    private void setupTableSelectionListener() {
+        inventoryTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (!e.getValueIsAdjusting()) {
+                    int selectedRow = inventoryTable.getSelectedRow();
+                    if (selectedRow != -1) {
+                        int modelRow = inventoryTable.convertRowIndexToModel(selectedRow);
 
-    private void generateLowStockReport() {
-        String thresholdStr = JOptionPane.showInputDialog(this,
-                "Enter the low stock quantity threshold:",
-                "Low Stock Report Threshold",
-                JOptionPane.QUESTION_MESSAGE);
+                        String name = tableModel.getValueAt(modelRow, 0).toString();
+                        String quantity = tableModel.getValueAt(modelRow, 1).toString();
+                        String price = tableModel.getValueAt(modelRow, 2).toString();
 
-        if (thresholdStr == null || thresholdStr.trim().isEmpty()) {
-            return;
-        }
-
-        int threshold;
-        try {
-            threshold = Integer.parseInt(thresholdStr);
-            if (threshold < 0) {
-                JOptionPane.showMessageDialog(this, "Threshold cannot be negative.", "Input Error",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Invalid threshold. Please enter a whole number.", "Input Error",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        StringBuilder reportContent = new StringBuilder();
-        reportContent.append("--- Low Stock Items Report ---\n");
-        reportContent.append("Threshold: ").append(threshold).append(" units\n\n");
-
-        boolean foundLowStock = false;
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            try {
-                String itemName = tableModel.getValueAt(i, 0).toString();
-                int quantity = (int) tableModel.getValueAt(i, 1);
-                String price = tableModel.getValueAt(i, 2).toString();
-
-                if (quantity <= threshold) {
-                    reportContent.append("Item: ").append(itemName)
-                            .append(", Quantity: ").append(quantity)
-                            .append(", Price: ").append(price).append("\n");
-                    foundLowStock = true;
+                        itemNameField.setText(name);
+                        itemNameField.setForeground(TEXT_COLOR);
+                        itemQuantityField.setText(quantity);
+                        itemQuantityField.setForeground(TEXT_COLOR);
+                        itemPriceField.setText(price);
+                        itemPriceField.setForeground(TEXT_COLOR);
+                    }
                 }
-            } catch (ClassCastException e) {
-                System.err.println("Error reading data for report at row " + i + ": " + e.getMessage());
             }
-        }
-
-        if (!foundLowStock) {
-            reportContent.append("No items found below the threshold of ").append(threshold).append(" units.\n");
-        }
-        reportContent.append("\n------------------------------");
-
-        JDialog reportDialog = new JDialog(this, "Low Stock Report - Bambu Vide", true);
-        reportDialog.setSize(500, 400);
-        reportDialog.setLocationRelativeTo(this);
-
-        JTextArea reportTextArea = new JTextArea(reportContent.toString());
-        reportTextArea.setEditable(false);
-        reportTextArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        JScrollPane reportScrollPane = new JScrollPane(reportTextArea);
-
-        reportDialog.add(reportScrollPane, BorderLayout.CENTER);
-
-        JPanel reportButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton closeReportButton = new JButton("Close");
-        closeReportButton.addActionListener(e -> reportDialog.dispose());
-        reportButtonPanel.add(closeReportButton);
-        reportDialog.add(reportButtonPanel, BorderLayout.SOUTH);
-
-        reportDialog.setVisible(true);
+        });
     }
 
-    private void clearFields() {
-        itemNameField.setText("");
-        itemQuantityField.setText("");
-        itemPriceField.setText("");
-        inventoryTable.clearSelection();
+    private void setupSearch() {
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                filterTable();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                filterTable();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                filterTable();
+            }
+
+            private void filterTable() {
+                String searchText = searchField.getText().trim();
+                if (searchText.equals("Search items...")) {
+                    searchText = "";
+                }
+
+                if (searchText.length() == 0) {
+                    sorter.setRowFilter(null);
+                } else {
+                    RowFilter<DefaultTableModel, Object> rowFilter = RowFilter.regexFilter("(?i)" + Pattern.quote(searchText));
+                    sorter.setRowFilter(rowFilter);
+                }
+            }
+        });
+    }
+
+    private void generateReport() {
+        if (tableModel.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this, "Inventory is empty. Nothing to report.", "No Data", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Inventory Report");
+        fileChooser.setSelectedFile(new java.io.File("Inventory_Report_" + dateFormatter.format(new Date()).replace(" ", "_").replace(":", "-") + ".txt"));
+
+        int userSelection = fileChooser.showSaveDialog(this);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            java.io.File fileToSave = fileChooser.getSelectedFile();
+
+            if (!fileToSave.getName().toLowerCase().endsWith(".txt")) {
+                fileToSave = new java.io.File(fileToSave.getAbsolutePath() + ".txt");
+            }
+
+            try (FileWriter writer = new FileWriter(fileToSave)) {
+                writer.write("Bambu Vide Inventory Report\n");
+                writer.write("Generated On: " + dateFormatter.format(new Date()) + "\n");
+                writer.write("--------------------------------------------------------------------------------------------------------------------------------\n");
+
+                for (int i = 0; i < tableModel.getColumnCount(); i++) {
+                    writer.write(String.format("%-25s", tableModel.getColumnName(i)));
+                }
+                writer.write("\n");
+                writer.write("--------------------------------------------------------------------------------------------------------------------------------\n");
+
+                for (int i = 0; i < tableModel.getRowCount(); i++) {
+                    writer.write(String.format("%-25s", tableModel.getValueAt(i, 0).toString()));
+                    writer.write(String.format("%-25s", tableModel.getValueAt(i, 1).toString()));
+                    writer.write(String.format("%-25s", tableModel.getValueAt(i, 2).toString()));
+                    writer.write(String.format("%-25s", tableModel.getValueAt(i, 3).toString()));
+                    writer.write(String.format("%-25s", tableModel.getValueAt(i, 4).toString()));
+                    writer.write("\n");
+                }
+                writer.write("--------------------------------------------------------------------------------------------------------------------------------\n");
+                writer.write("Total Items in Inventory: " + totalQuantityLabel.getText().replaceAll("\\D+","") + "\n");
+                writer.write("--------------------------------------------------------------------------------------------------------------------------------\n");
+
+
+                JOptionPane.showMessageDialog(this, "Report saved successfully to:\n" + fileToSave.getAbsolutePath(), "Report Generated", JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error saving report: " + ex.getMessage(), "File Error", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        }
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                BambuVideApp frame = new BambuVideApp();
-
-                // Show registration dialog first
-                RegistrationDialog registrationDialog = new RegistrationDialog(frame);
-                registrationDialog.setVisible(true);
-
-                if (registrationDialog.isRegistered()) {
-                    // Optionally, you can pass the registered username/password to LoginDialog
-                    RegistrationDialog loginDialog = new RegistrationDialog(frame);
-                    loginDialog.setVisible(true);
-
-                    if (loginDialog.isAuthenticated()) {
-                        frame.setVisible(true);
-                    } else {
-                        System.exit(0);
-                    }
-                } else {
-                    System.exit(0);
-                }
-            }
+        SwingUtilities.invokeLater(() -> {
+            new LoginFrame().setVisible(true);
         });
     }
 }
