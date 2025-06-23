@@ -41,11 +41,11 @@ public class InventoryButtonPanel extends JPanel {
 
         buttons = new HashMap<>();
 
-        JButton addButton = createStyledButton("Add Item", ADD_ITEM_COLOR, addListener, "/resources/additemIcon.png");
-        JButton updateButton = createStyledButton("Update Item", UPDATE_ITEM_COLOR, updateListener, "/resources/updateitemIcon.png");
-        JButton deleteButton = createStyledButton("Delete Item", DELETE_ITEM_COLOR, deleteListener, "/resources/deleteitemIcon.png");
-        JButton clearButton = createStyledButton("Clear Fields", CLEAR_FIELDS_COLOR, clearListener, "/resources/clearIcon.png");
-        JButton reportButton = createStyledButton("Generate Report", GENERATE_REPORT_COLOR, generateReportListener, "/resources/generatereportIcon.png");
+        JButton addButton = createStyledButton("Add Item", ADD_ITEM_COLOR, addListener, "additemIcon.png");
+        JButton updateButton = createStyledButton("Update Item", UPDATE_ITEM_COLOR, updateListener, "updateitemIcon.png");
+        JButton deleteButton = createStyledButton("Delete Item", DELETE_ITEM_COLOR, deleteListener, "deleteitemIcon.png");
+        JButton clearButton = createStyledButton("Clear Fields", CLEAR_FIELDS_COLOR, clearListener, "clearIcon.png");
+        JButton reportButton = createStyledButton("Generate Report", GENERATE_REPORT_COLOR, generateReportListener, "generatereportIcon.png");
 
         add(addButton);
         add(updateButton);
