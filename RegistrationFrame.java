@@ -23,7 +23,8 @@ public class RegistrationFrame extends JFrame {
         this.registeredUsers = registeredUsers;
 
         setTitle("Register - Bambu Vibe");
-        setIconImage(new ImageIcon("resources/myicon.png").getImage());
+        setIconImage(new ImageIcon("myicon.png").getImage());
+        setResizable(false);
         setSize(400, 450);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -31,7 +32,7 @@ public class RegistrationFrame extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        setContentPane(new JLabel(new ImageIcon("background.jpg")));
+        setContentPane(new JLabel(new ImageIcon("Background.png")));
         setLayout(new BorderLayout());
 
         JPanel mainPanel = new JPanel(new GridBagLayout());

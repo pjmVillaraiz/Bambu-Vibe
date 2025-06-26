@@ -20,7 +20,8 @@ public class LoginFrame extends JFrame {
 
     public LoginFrame() {
         setTitle("Login - Bambu Vibe");
-        setIconImage(new ImageIcon("resources/myicon.png").getImage());
+        setIconImage(new ImageIcon("myicon.png").getImage());
+        setResizable(false);
         setSize(400, 450);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -40,15 +41,15 @@ public class LoginFrame extends JFrame {
             }
         });
 
-        setContentPane(new JLabel(new ImageIcon("resources/background.jpg")));
+        setContentPane(new JLabel(new ImageIcon("Background.png")));
         setLayout(new BorderLayout());
 
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        JPanel mainPanel = new JPanel(new BorderLayout(20, 20));
         mainPanel.setOpaque(false);
         mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         JLabel logoLabel = new JLabel("Bambu Vibe", SwingConstants.CENTER);
-        logoLabel.setFont(new Font("Georgia", Font.BOLD, 32));
+        logoLabel.setFont(new Font("Sunday", Font.BOLD, 32));
         logoLabel.setForeground(LOGIN_TEXT_COLOR);
         mainPanel.add(logoLabel, BorderLayout.NORTH);
 
@@ -270,7 +271,8 @@ public class LoginFrame extends JFrame {
     }
 
     public void hideLoginFrame() {
-        setVisible(false);
+       new BambuVibeApp().setVisible(false);
+
     }
 
     public static void main(String[] args) {

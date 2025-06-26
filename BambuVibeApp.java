@@ -27,6 +27,10 @@ public class BambuVibeApp extends JFrame {
     private JButton addButtonReference;
 
     private LoginFrame loginFrame;
+    public BambuVibeApp(LoginFrame loginFrame) {
+        this.loginFrame = loginFrame;
+    }
+
 
     private final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private static final String INVENTORY_FILE = "inventory.csv";
@@ -56,7 +60,7 @@ public class BambuVibeApp extends JFrame {
 
     public BambuVibeApp() {
         setTitle("Bambu Vibe");
-        setIconImage(new ImageIcon("resources/myicon.png").getImage());
+        setIconImage(new ImageIcon("myicon.png").getImage());
         setSize(400, 450);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -404,14 +408,14 @@ public class BambuVibeApp extends JFrame {
         sidebar.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
         sidebar.setPreferredSize(new Dimension(80, getHeight()));
 
-        JButton orderButton = createSidebarButton("/resources/orderIcon.png", "Order Item");
+        JButton orderButton = createSidebarButton("orderIcon.png", "Order Item");
         orderButton.addActionListener(e -> showOrderDialog());
         sidebar.add(orderButton);
         sidebar.add(Box.createVerticalStrut(10));
 
         sidebar.add(Box.createVerticalGlue());
 
-        JButton logoutButton = createSidebarButton("/resources/logoutIcon.png", "Logout");
+        JButton logoutButton = createSidebarButton("logoutIcon.png", "Logout");
         logoutButton.addActionListener(e -> logout());
         sidebar.add(logoutButton);
 
@@ -941,6 +945,8 @@ public class BambuVibeApp extends JFrame {
         dispose();
         if (loginFrame != null) {
             loginFrame.showLoginFrame();
+        } else {
+            new LoginFrame().setVisible(true);
         }
     }
 
