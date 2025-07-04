@@ -1,7 +1,7 @@
 Bambu Vibe Logistics Management System
-A Java Swing application for inventory management
+A Java Swing application for inventory and customer management
 
 
-How to Run // register/login admin // inventory // csv file // logout
+How to Run
 Debug/run:
 BambuVibeApp
