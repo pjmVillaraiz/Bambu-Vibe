@@ -56,7 +56,7 @@ public class BambuVibeApp extends JFrame {
 
     public BambuVibeApp() {
         setTitle("Bambu Vibe");
-        setIconImage(new ImageIcon("resources/myicon.png").getImage());
+        setIconImage(new ImageIcon("myicon.png").getImage());
         setSize(400, 450);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -404,14 +404,14 @@ public class BambuVibeApp extends JFrame {
         sidebar.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
         sidebar.setPreferredSize(new Dimension(80, getHeight()));
 
-        JButton orderButton = createSidebarButton("/resources/orderIcon.png", "Order Item");
+        JButton orderButton = createSidebarButton("orderIcon.png", "Order Item");
         orderButton.addActionListener(e -> showOrderDialog());
         sidebar.add(orderButton);
         sidebar.add(Box.createVerticalStrut(10));
 
         sidebar.add(Box.createVerticalGlue());
 
-        JButton logoutButton = createSidebarButton("/resources/logoutIcon.png", "Logout");
+        JButton logoutButton = createSidebarButton("logoutIcon.png", "Logout");
         logoutButton.addActionListener(e -> logout());
         sidebar.add(logoutButton);
 
